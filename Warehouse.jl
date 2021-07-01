@@ -12,37 +12,37 @@ q_table = let (rows, cols) = size(rewards)
 end
 
 # Determine if the current state is terminal or if the agent can keep moving
-isterminal(row, column) = rewards[row, column] != -1.0
+isterminal(position::CartesianIndex) = rewards[position] != -1.0
 
 # Starting from a random location
 getStartingLocation() = let validPoints = findall(s -> s == -1, rewards)
-  rand(validPoints) |> Tuple
+  rand(validPoints)
 end
 
-getNextAction(row, column, ϵ) = rand() < ϵ ? argmax(q_table[row,column,:]) : rand(1:Action.size)
+getNextAction(position::CartesianIndex, ϵ) = rand() < ϵ ? argmax(q_table[position,:]) : rand(1:Action.size)
 
-function getNextLocation(row, column, action_index)
+function getNextLocation(position::CartesianIndex, action_index)
   action = Action(action_index)
-  move = if action == up;    (-1,0)
-     elseif action == right; (0,1)
-     elseif action == down;  (1,0)
-     elseif action == left;  (0,-1)
+  move = if action == up;    CartesianIndex(-1,0)
+     elseif action == right; CartesianIndex(0,1)
+     elseif action == down;  CartesianIndex(1,0)
+     elseif action == left;  CartesianIndex(0,-1)
      end
-  next = (row, column) .+ move
+  next = position + move
   try
-    checkbounds(q_table[:,:,1], next...)
+    checkbounds(q_table[:,:,1], next)
     next
-  catch e
-    (row, column)
+  catch _
+    position
   end
 end
 
-function getShortestPath(row, column)
-  path = [(row, column)]
-  while !isterminal(row, column)
-    action = getNextAction(row, column, 1.0)
-    (row, column) = getNextLocation(row, column, action)
-    push!(path, (row,column))
+function getShortestPath(position::CartesianIndex)
+  path = [position]
+  while !isterminal(position)
+    action = getNextAction(position, 1.0)
+    position = getNextLocation(position, action)
+    push!(path, position)
   end
   path
 end
@@ -53,23 +53,32 @@ discount = 0.9
 learningRate = 0.9
 
 for _ in 1:1000
-  row, column = getStartingLocation()
-  while !isterminal(row, column)
-    action = getNextAction(row, column, ϵ)
-    nextRow, nextColumn = getNextLocation(row, column, action)
+  position = getStartingLocation()
+  while !isterminal(position)
+    action = getNextAction(position, ϵ)
+    nextPostion = getNextLocation(position, action)
 
-    nextStepReward = rewards[nextRow,nextColumn]
-    currentValue = q_table[row,column,action]
-    temporal_difference = nextStepReward + discount * maximum(q_table[nextRow,nextColumn,:]) - currentValue
+    nextStepReward = rewards[nextPostion]
+    currentValue = q_table[position,action]
+    temporal_difference = nextStepReward + discount * maximum(q_table[nextPostion,:]) - currentValue
 
     newValue = currentValue + learningRate * temporal_difference
-    q_table[row,column,action] = newValue
+    q_table[position,action] = newValue
 
-    row, column = (nextRow, nextColumn)
+    position = nextPostion
   end
 end
 
-getShortestPath(4,10) |> println
-getShortestPath(6,1) |> println
-getShortestPath(10,6) |> println
-getShortestPath(6,3) |> println
+function showpath(path::Vector{CartesianIndex{2}})
+  grid = ones(Int8, size(rewards))
+  grid[path] .= 0
+  grid
+end
+
+CartesianIndex(4,10) |> getShortestPath |> showpath |> display
+println()
+CartesianIndex(6,1)  |> getShortestPath |> showpath |> display
+println()
+CartesianIndex(10,6) |> getShortestPath |> showpath |> display
+println()
+CartesianIndex(6,3)  |> getShortestPath |> showpath |> display
