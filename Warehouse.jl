@@ -1,4 +1,3 @@
-using DelimitedFiles: readdlm_auto
 using DelimitedFiles
 
 # Map to be trained
