@@ -1,7 +1,7 @@
 using DelimitedFiles
 
 # Map to be trained
-rewards = readdlm("grid.csv", ',')
+rewards = readdlm("rewards.csv", ',')
 
 # Possible actions the agent can execute on the map
 @enum Action up=1 right down left
