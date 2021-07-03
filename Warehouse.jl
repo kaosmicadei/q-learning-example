@@ -17,7 +17,7 @@ struct Agent
     qvalues::Array{Float32, N} where N
 end
 Agent(e::Environment) = let dims = (size(e.rewards)..., e.actions)
-    Agent(zeros(Float32, dims))
+    zeros(Float32, dims) |> Agent
 end
 
 function update_qvalues!(a::Agent, e::Environment, state::State, next_state::State, action::Action; α=0.9, γ=0.9)
@@ -45,8 +45,8 @@ function get_next_state(e::Environment, state::State, action::Action)
         3 => State(1,0)     # down
         4 => State(0,-1)    # left
     end
-    next = state + move
     try
+        next = state + move
         checkbounds(e.rewards, next)
         next
     catch
@@ -81,7 +81,7 @@ for _ in 1:episodes
   end
 end
 
-# # Tests
+# Tests
 starting_states = [State(4,10), State(6,1), State(10,6), State(6,3)]
 
 foreach(starting_states) do state
