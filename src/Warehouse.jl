@@ -7,7 +7,7 @@ include("policy.jl")
 # Initialise the environment and agent
 agent, env = readdlm(ARGS[1], ',') |> initialize
 
-# Training part
+# Training
 ϵ = 0.7
 episodes = 5_000
 for _ in 1:episodes

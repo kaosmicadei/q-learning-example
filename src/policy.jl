@@ -1,7 +1,6 @@
 # Determine if the current state is terminal or if the agent can keep moving
 isterminal(state::State, e::Environment) = e.rewards[state] != -1.0
 
-# Starting from a random state
 get_starting_state(e::Environment) = findall(s -> s == -1, e.rewards) |> rand
 
 get_next_action(a::Agent, e::Environment, state::State, ϵ) = rand() < ϵ ? argmax(a.qvalues[state,:]) : rand(1:e.actions)
