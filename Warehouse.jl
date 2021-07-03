@@ -1,91 +1,92 @@
 using DelimitedFiles
 
+# Generic abstraction of a state
+State = CartesianIndex
+
 # Possible actions the agent can execute.
 @enum Action up=1 right down left
 
-# Define an enviroment.
-struct Environment
+struct QLearning
   rewards::Matrix{Float64}
-  qTable::Array{Float64,3}
+  values::Array{Float64,3}
 end
 
-Environment(rewards) = let 
+QLearning(rewards) = let
   (rows, cols) = size(rewards)
-  qTable = zeros(Float64, rows, cols, Action.size)
-  Environment(rewards, qTable)
+  values = zeros(Float64, rows, cols, Action.size)
+  QLearning(rewards, values)
 end
 
-function update_qTable!(e::Environment, currentPosition::CartesianIndex, nextPosition::CartesianIndex, action::Action; α=0.9, γ=0.9)
+function update_qvalues!(q::QLearning, state::State, nextState::State, action::Action; α=0.9, γ=0.9)
   # α : learning rate
   # γ : discount factor
   action_index = Int(action)
-  reward = e.rewards[nextPosition]
-  qValue = e.qTable[currentPosition, action_index]
-  optimalNextAction = maximum(e.qTable[nextPosition,:])
+  reward = q.rewards[nextState]
+  oldValue = q.values[state, action_index]
+  optimalNextAction = maximum(q.values[nextState,:])
   newValue = reward + γ * optimalNextAction
-  temporalDifference = newValue - qValue
-  e.qTable[currentPosition, action_index] = qValue + α * temporalDifference
+  q.values[state, action_index] = (1-α) * oldValue + α * newValue
 end
 
 # Determine if the current state is terminal or if the agent can keep moving
-isterminal(position::CartesianIndex, e::Environment) = e.rewards[position] != -1.0
+isterminal(position::State, q::QLearning) = q.rewards[position] != -1.0
 
 # Starting from a random location
-getStartingLocation(e::Environment) = let validPoints = findall(s -> s == -1, e.rewards)
+getStartingLocation(q::QLearning) = let validPoints = findall(s -> s == -1, q.rewards)
   rand(validPoints)
 end
 
-getNextAction(e::Environment, position::CartesianIndex, ϵ) = let
-  index = rand() < ϵ ? argmax(e.qTable[position,:]) : rand(1:Action.size)
+getNextAction(q::QLearning, position::State, ϵ) = let
+  index = rand() < ϵ ? argmax(q.values[position,:]) : rand(1:Action.size)
   Action(index)
 end
 
-function getNextLocation(e::Environment, position::CartesianIndex, action::Action)
-  move = if action == up;    CartesianIndex(-1,0)
-     elseif action == right; CartesianIndex(0,1)
-     elseif action == down;  CartesianIndex(1,0)
-     elseif action == left;  CartesianIndex(0,-1)
+function getNextLocation(q::QLearning, position::State, action::Action)
+  move = if action == up;    State(-1,0)
+     elseif action == right; State(0,1)
+     elseif action == down;  State(1,0)
+     elseif action == left;  State(0,-1)
      end
   next = position + move
   try
-    checkbounds(e.qTable[:,:,1], next)
+    checkbounds(q.values[:,:,1], next)
     next
-  catch _
+  catch
     position
   end
 end
 
-function getShortestPath(e::Environment, position::CartesianIndex)
+function getShortestPath(q::QLearning, position::State)
   path = [position]
-  while !isterminal(position, e)
-    action = getNextAction(e, position, 1.0)
-    position = getNextLocation(e, position, action)
+  while !isterminal(position, q)
+    action = getNextAction(q, position, 1.0)
+    position = getNextLocation(q, position, action)
     push!(path, position)
   end
   path
 end
 
-# Initialise the environment
-env = readdlm("rewards.csv", ',') |> Environment
+# Initialise the QLearning
+q = readdlm("rewards.csv", ',') |> QLearning
 
 # Training part
 ϵ = 0.7
 for _ in 1:5_000
-  position = getStartingLocation(env)
-  while !isterminal(position, env)
-    action = getNextAction(env, position, ϵ)
-    nextPostion = getNextLocation(env, position, action)
-    update_qTable!(env, position, nextPostion, action)
+  position = getStartingLocation(q)
+  while !isterminal(position, q)
+    action = getNextAction(q, position, ϵ)
+    nextPostion = getNextLocation(q, position, action)
+    update_qvalues!(q, position, nextPostion, action)
     position = nextPostion
   end
 end
 
 # Tests
-startingPoint = [CartesianIndex(4,10), CartesianIndex(6,1), CartesianIndex(10,6), CartesianIndex(6,3)]
+startingPoint = [State(4,10), State(6,1), State(10,6), State(6,3)]
 
-foreach(startingPoint) do point 
-  path = getShortestPath(env, point)
-  grid = zeros(Int8, size(env.rewards))
+foreach(startingPoint) do point
+  path = getShortestPath(q, point)
+  grid = zeros(Int8, size(q.rewards))
   grid[path] .= 99
   display(grid)
   println('\n')
