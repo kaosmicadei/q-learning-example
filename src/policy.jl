@@ -23,13 +23,13 @@ function get_next_state(e::Environment, state::State, action::Action)
 end
 
 function get_shortest_path(a::Agent, e::Environment, state::State)
-  path = [state]
-  while !isterminal(state, e)
-    action = get_next_action(a, e, state, 1.0)
-    state = get_next_state(e, state, action)
-    push!(path, state)
-  end
-  path
+    path = [state]
+    while !isterminal(state, e)
+        action = get_next_action(a, e, state, 1.0)
+        state = get_next_state(e, state, action)
+        push!(path, state)
+    end
+    path
 end
 
 function initialize(rewards)
