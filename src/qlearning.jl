@@ -13,9 +13,8 @@ end
 struct Agent
     qvalues::Array{Float32, N} where N
 end
-Agent(e::Environment) = let dims = (size(e.rewards)..., e.actions)
-    zeros(Float32, dims) |> Agent
-end
+
+Agent(e::Environment) = zeros(Float32, size(e.rewards)..., e.actions) |> Agent
 
 function update_qvalues!(a::Agent, e::Environment, state::State, next_state::State, action::Action; α=0.9, γ=0.9)
     # α : learning rate
