@@ -24,5 +24,5 @@ function update_qvalues!(a::Agent, e::Environment, state::State, next_state::Sta
     oldvalue = a.qvalues[state, action]
     optimal_action = maximum(a.qvalues[next_state,:])
     newvalue = reward + γ * optimal_action
-    a.qvalues[state, action] = (1-α) * oldvalue + α * newvalue
+    @inbounds a.qvalues[state, action] = (1-α) * oldvalue + α * newvalue
 end
