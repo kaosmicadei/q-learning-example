@@ -1,6 +1,6 @@
 module Warehouse
 
-export State, initialize, train_agent!, display_path
+export State, Agent, initialize, train_agent!, display_path
 
 using Match
 
@@ -46,13 +46,13 @@ function initialize(rewards)
     a, e
 end
 
-function train_agent!(a::Agent, e::Environment; ϵ=0.7, episodes=1_000)
+function train_agent!(a::Agent, e::Environment; ϵ=0.7, episodes=1_000, α=0.9, γ=0.9)
     for _ in 1:episodes
         state = get_starting_state(e)
         while !isterminal(state, e)
             action = get_next_action(a, e, state, ϵ)
             next_state = get_next_state(e, state, action)
-            update_qvalues!(a, e, state, next_state, action)
+            update_qvalues!(a, e, state, next_state, action; α=α, γ=γ)
             state = next_state
         end
     end
@@ -63,6 +63,8 @@ function display_path(a::Agent, e::Environment, s::State)
     grid = zeros(Int8, size(e.rewards))
     grid[path] .= 99
     display(grid)
+    println()
+    display(a.qvalues[path,:])
 end
 
 end # module
