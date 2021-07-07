@@ -6,6 +6,16 @@ using Match
 
 include("qlearning.jl")
 
+function (a::Agent)(e::Environment, state::State)
+    path = [state]
+    while !isterminal(state, e)
+        action = get_next_action(a, e, state, 1.0)
+        state = get_next_state(e, state, action)
+        push!(path, state)
+    end
+    path
+end
+
 # Determine if the current state is terminal or if the agent can keep moving.
 isterminal(state::State, e::Environment) = e.rewards[state] != -1.0
 
@@ -30,16 +40,6 @@ function get_next_state(e::Environment, state::State, action::Action)
     end
 end
 
-function get_shortest_path(a::Agent, e::Environment, state::State)
-    path = [state]
-    while !isterminal(state, e)
-        action = get_next_action(a, e, state, 1.0)
-        state = get_next_state(e, state, action)
-        push!(path, state)
-    end
-    path
-end
-
 function initialize(rewards)
     e = Environment(rewards, 4)
     a = Agent(e)
@@ -59,7 +59,7 @@ function train_agent!(a::Agent, e::Environment; ϵ=0.7, episodes=1_000)
 end
 
 function display_path(a::Agent, e::Environment, s::State)
-    path = get_shortest_path(a, e, s)
+    path = a(e, s)
     grid = zeros(Int8, size(e.rewards))
     grid[path] .= 99
     display(grid)
